@@ -6,7 +6,7 @@ describe('Ipv8Connector.ts', function () {
   this.beforeAll(function (done) {
     this.timeout(60000)
     Ipv8DockerUtil.startIpv8Container()
-      .then(() => Ipv8DockerUtil.waitForContainersToBeReady().then(done))
+      .then(() => Ipv8DockerUtil.waitForContainersToBeReady().then(() => done()))
   })
 
   this.afterAll(function (done) {
@@ -61,5 +61,22 @@ describe('Ipv8Connector.ts', function () {
     const claim = await employeeConnector.get('link:discipl:ipv8:temp:eyJ0aW1lRm9yIjoiYmVlciJ9')
     expect(claim.data).to.eq('{"timeFor":"beer"}')
     expect(claim.previous).to.eq(null)
+  })
+
+  it('should be able to verify a attested claim', function (done) {
+    this.slow(5000)
+    this.timeout(5000)
+    const brewerConnector = new Ipv8Connector()
+    const employeeConnector = new Ipv8Connector()
+    brewerConnector.configure(peers.brewer.url)
+    employeeConnector.configure(peers.employee.url)
+
+    setTimeout(() => {
+      employeeConnector.ipv8AttestationClient.allowVerify('eGU/YRXWJB18VQf8UbOoIhW9+xM=', 'time_for_beer')
+    }, 1000)
+
+    brewerConnector.verify(peers.employee.did, { 'approve': 'link:discipl:ipv8:perm:862e9a4aa832a9a9d386a2e5002f7fb863c700605ce3e82876be81a2a606275f' }, peers.brewer.did)
+      .then(link => expect(link).to.eq('link:discipl:ipv8:perm:862e9a4aa832a9a9d386a2e5002f7fb863c700605ce3e82876be81a2a606275f'))
+      .then(() => done())
   })
 })
